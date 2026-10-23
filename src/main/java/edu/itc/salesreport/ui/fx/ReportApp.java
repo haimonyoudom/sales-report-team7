@@ -4,13 +4,14 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.YearMonth;
+import java.time.Clock;
 import javax.imageio.ImageIO;
 
 import edu.itc.salesreport.engine.DefaultSalesAggregator;
 import edu.itc.salesreport.ingest.CsvMonthReader;
 import edu.itc.salesreport.ingest.CsvTransactionParser;
 import edu.itc.salesreport.ui.SalesModel;
+import edu.itc.salesreport.ui.ReportController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -25,13 +26,16 @@ public class ReportApp extends Application {
         var aggregator = new DefaultSalesAggregator();
         var model = new SalesModel(reader, aggregator);
         var view = new ReportView(model);
+        var controller = new ReportController(
+                model, Path.of("data"), Clock.systemDefaultZone(), view);
+        view.bind(controller);
 
         var scene = new Scene(view.root(), 960, 600);
         stage.setTitle("Sales Report");
         stage.setScene(scene);
         stage.show();
 
-        model.load(Path.of("data"), YearMonth.of(2026, 9));
+        controller.monthEntered("2026-09");
 
         Platform.runLater(() -> {
             captureScreenshot(scene, Path.of("lab02", "screenshots", "mvc-viewer.png"));

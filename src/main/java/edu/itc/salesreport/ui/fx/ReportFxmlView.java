@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import edu.itc.salesreport.model.SaleTransaction;
 import edu.itc.salesreport.ui.ErrorDisplay;
+import edu.itc.salesreport.ui.ReportController;
 import edu.itc.salesreport.ui.SalesEvent;
 import edu.itc.salesreport.ui.SalesEvent.BranchSelected;
 import edu.itc.salesreport.ui.SalesEvent.MonthLoaded;
@@ -69,6 +70,11 @@ public final class ReportFxmlView implements SalesModelListener, ErrorDisplay {
     public Label status() { return status; }
     public Label error() { return error; }
 
+    public void bind(ReportController controller) {
+        monthField.setOnAction(e -> controller.monthEntered(monthField.getText()));
+        branchBox.setOnAction(e -> controller.branchChosen(branchBox.getValue()));
+    }
+
     @Override
     public void modelChanged(SalesEvent event) {
         if (model == null) return;
@@ -82,9 +88,12 @@ public final class ReportFxmlView implements SalesModelListener, ErrorDisplay {
 
         status.setText(switch (event) {
             case MonthLoaded(var month, var rows, var rejected) ->
-                "Loaded %s: %d rows, %d rejected".formatted(month, rows, rejected);
+                "%s: %d rows, %d rejected · revenue USD %s · receipts %d"
+                        .formatted(month, rows, rejected,
+                                model.summary().revenue(), model.summary().receipts());
             case BranchSelected(var branch) ->
-                "Branch " + branch;
+                "BranchSelected: revenue USD %s, receipts %d"
+                        .formatted(model.summary().revenue(), model.summary().receipts());
         });
     }
 
