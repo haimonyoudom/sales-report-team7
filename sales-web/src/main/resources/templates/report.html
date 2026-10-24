@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Angkor Mart — Monthly Sales Report</title>
+    <style>
+        :root { color-scheme: light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #172033; background: #f3f6fb; }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        header { padding: 2rem max(1rem, calc((100% - 1000px)/2)); color: white; background: linear-gradient(120deg, #172554, #1d4ed8); }
+        header p { margin-bottom: 0; color: #dbeafe; }
+        main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem 2rem; }
+        .panel { margin-bottom: 1rem; padding: 1.25rem; background: white; border: 1px solid #e1e7f0; border-radius: 14px; box-shadow: 0 5px 18px #1725540b; }
+        form { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+        label { display: grid; gap: .4rem; font-size: .9rem; font-weight: 650; }
+        input, select, button { min-height: 42px; padding: .55rem .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+        button { color: white; background: #1d4ed8; border-color: #1d4ed8; cursor: pointer; font-weight: 650; }
+        h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+        h2 { margin-top: 0; font-size: 1.15rem; }
+        .error { padding: .8rem 1rem; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; }
+        .totals { font-size: 1.05rem; font-weight: 700; }
+        .muted { color: #64748b; font-weight: 400; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: .7rem .5rem; text-align: left; border-bottom: 1px solid #e8edf4; }
+        th { color: #475569; font-size: .85rem; }
+        td:last-child, th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+        ul { margin-bottom: 0; padding-left: 1.3rem; }
+        li { padding: .35rem 0; }
+        .columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+        @media (max-width: 520px) { form label { width: 100%; } form input, form select, form button { width: 100%; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1 th:if="${summary != null}" th:text="|Angkor Mart · ${month} · ${branch}|">Angkor Mart · 2026-09 · PNH</h1>
+    <h1 th:unless="${summary != null}">Angkor Mart · Monthly Sales Report</h1>
+    <p>Branch performance overview</p>
+</header>
+<main>
+    <section class="panel">
+        <form action="/report" method="get">
+            <label for="month">Month
+                <input id="month" name="month" type="month" required th:value="${month}">
+            </label>
+            <label for="branch">Branch
+                <select id="branch" name="branch">
+                    <option th:each="code : ${branches}" th:value="${code}" th:text="${code}" th:selected="${code == branch}">PNH</option>
+                </select>
+            </label>
+            <button type="submit">View report</button>
+        </form>
+    </section>
+
+    <p class="error" th:if="${error != null}" th:text="${error}">An error occurred.</p>
+
+    <section class="panel" th:if="${summary != null}">
+        <h2>Monthly totals</h2>
+        <p class="totals" th:text="|Revenue USD ${summary.revenue()} · receipts ${summary.receipts()} · basket USD ${summary.averageBasket()} · rejected rows ${#lists.size(rejected)}|">
+            Revenue USD 8455.90 · receipts 489 · basket USD 17.29 · rejected rows 0
+        </p>
+        <p class="muted" th:text="|Discounts USD ${summary.discounts()}|">Discounts USD 0.00</p>
+    </section>
+
+    <div class="columns" th:if="${summary != null}">
+        <section class="panel">
+            <h2>Revenue by category</h2>
+            <table>
+                <thead><tr><th>Category</th><th>Revenue (USD)</th></tr></thead>
+                <tbody>
+                <tr th:each="entry : ${summary.revenueByCategory().entrySet()}">
+                    <td th:text="${entry.key}">Electronics</td>
+                    <td th:text="${entry.value}">3404.50</td>
+                </tr>
+                <tr th:if="${summary.revenueByCategory().isEmpty()}"><td colspan="2">No sales for this selection.</td></tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="panel">
+            <h2>Top products</h2>
+            <ol>
+                <li th:each="p : ${summary.topProducts()}" th:text="|${p.productName()}: USD ${p.revenue()}|">Power Bank 10000mAh: USD 2604.70</li>
+                <li th:if="${summary.topProducts().isEmpty()}">No sales for this selection.</li>
+            </ol>
+        </section>
+    </div>
+
+    <section class="panel" th:if="${rejected != null and !rejected.isEmpty()}">
+        <h2>Rejected rows <span class="muted" th:text="|(${#lists.size(rejected)})|">(1)</span></h2>
+        <ul><li th:each="row : ${rejected}" th:text="${row}">file.csv:2 invalid row</li></ul>
+    </section>
+</main>
+</body>
+</html>
