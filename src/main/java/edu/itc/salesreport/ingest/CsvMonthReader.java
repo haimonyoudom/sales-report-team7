@@ -23,6 +23,18 @@ public class CsvMonthReader {
     }
 
     public MonthData read(Path dataDir, YearMonth month) throws IOException {
+        return read(dataDir, month, FILE_NAME);
+    }
+
+    /** Reads only the files of one branch (Lab-03: one branch per load). */
+    public MonthData readBranch(Path dataDir, YearMonth month, String branch)
+            throws IOException {
+        return read(dataDir, month, Pattern.compile(
+                Pattern.quote(branch) + "-\\d{4}-\\d{2}-\\d{2}\\.csv"));
+    }
+
+    private MonthData read(Path dataDir, YearMonth month, Pattern fileName)
+            throws IOException {
         Path monthDir = dataDir.resolve(month.toString());
         if (!Files.isDirectory(monthDir)) {
             throw new NoSuchFileException(monthDir.toString());
@@ -31,7 +43,7 @@ public class CsvMonthReader {
         List<Path> files;
         try (Stream<Path> stream = Files.list(monthDir)) {
             files = stream
-                    .filter(p -> FILE_NAME.matcher(p.getFileName().toString()).matches())
+                    .filter(p -> fileName.matcher(p.getFileName().toString()).matches())
                     .sorted(Comparator.comparing(p -> p.getFileName().toString()))
                     .toList();
         }
