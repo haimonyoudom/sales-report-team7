@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.ObjectBinding;
@@ -37,6 +39,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Task 1 skeleton: state, commands and ports. javafx.base only. */
 public final class ReportViewModel {
@@ -66,6 +70,7 @@ public final class ReportViewModel {
     private final StringBinding monthError;
     private final StringBinding branchError;
     private final StringBinding validationMessage;
+    private final BooleanBinding valid;
     private final BooleanBinding canGenerate;
     private final ObjectBinding<BigDecimal> totalRevenue;
     private final StringBinding totalRevenueText;
@@ -87,10 +92,20 @@ public final class ReportViewModel {
             branchSelected.put(b, new SimpleBooleanProperty(this, b, true));
         }
         // TODO Task 3: real rules (future month, empty branch selection)
-        monthError = Bindings.createStringBinding(() -> "", month);
-        branchError = Bindings.createStringBinding(() -> "");
-        validationMessage = Bindings.createStringBinding(() -> "");
-        canGenerate = month.isNotNull().and(loading.not());
+        monthError = Bindings.createStringBinding(
+                () -> checkMonth(month.get()), month);
+        Observable[] flags = branchSelected.values().toArray(Observable[]::new);
+        branchError = Bindings.createStringBinding(
+                () -> selectedBranches().isEmpty()
+                        ? "Select at least one branch." : "",
+                flags);
+        validationMessage = Bindings.createStringBinding(
+                () -> Stream.of(monthError.get(), branchError.get())
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.joining(" ")),
+                monthError, branchError);
+        valid = monthError.isEmpty().and(branchError.isEmpty());
+        canGenerate = valid.and(loading.not());
         // TODO Task 2: sum of summaries' revenue, formatted "USD 1,234.50"
         // TODO Task 2: bind visibleProducts' predicate to productFilter
         totalRevenue = Bindings.createObjectBinding(
@@ -106,6 +121,17 @@ public final class ReportViewModel {
         cancelCommand = new DelegateCommand(this::cancel,
                 loading.getReadOnlyProperty());
     }
+
+    private String checkMonth(YearMonth m){
+        if(m == null){
+            return "Choose a month.";
+        }
+        if(m.isAfter(YearMonth.now(clock))){
+            return "Month " + m + " is in the future.";
+        }
+        return "";
+    }
+
 
     public List<String> selectedBranches() {
         return branchSelected.entrySet().stream()
@@ -136,13 +162,13 @@ public final class ReportViewModel {
                     }
 
                     public void failed(Throwable e) {
-                        loadError.set("Could not load " + m + ": " + e.getMessage());
-                        status.set("Load failed.");
+                        loadError.set(e.getMessage());
+                        status.set("Load failed, previous data kept.");
                         loading.set(false);
                     }
 
                     public void cancelled() {
-                        status.set("Cancelled.");
+                        status.set("Cancelled, previous data kept.");
                         loading.set(false);
                     }
                 });
@@ -152,10 +178,14 @@ public final class ReportViewModel {
 
     private List<BranchSummary> loadAll(YearMonth m, List<String> branches,
             BackgroundJobs.ProgressSink sink) throws Exception {
+        // runs on the worker: uses only its arguments and the source
         List<BranchSummary> result = new ArrayList<>();
-        for (String b : branches) {
-            result.add(source.load(m, b));
-            sink.update(result.size(), branches.size());
+        int n = branches.size();
+        for (int i = 0; i < n; i++) {
+            if (sink.isCancelled())
+                throw new CancellationException();
+            result.add(source.load(m, branches.get(i)));
+            sink.update(i + 1, n);
         }
         return result;
     }

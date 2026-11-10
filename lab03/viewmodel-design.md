@@ -131,3 +131,32 @@ classDiagram
 ## 4. Adapting the Lab-02 model
 
 `SalesModel.load` reads every branch file of the month and mixes the rows; the ViewModel needs one branch at a time so that progress and Cancel work per branch. Plan: add `CsvMonthReader.readBranch(Path, YearMonth, String)` (reads only `<BRANCH>-*.csv`) and implement `SummarySource` as `(m, b) -> aggregator.summarize(b, reader.readBranch(dataDir, m, b).rows())`. `SalesModel` and the Lab-02 views stay untouched for the Task 5 baseline.
+
+
+## 5. Screen state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Incomplete
+    Incomplete --> Invalid : future month or no branch
+    Incomplete --> Ready : month ok and a branch ticked
+    Invalid --> Ready : input fixed
+    Ready --> Invalid : input changed
+    Ready --> Loading : generate
+    Loading --> Loaded : succeeded
+    Loading --> Failed : failed
+    Loading --> Ready : cancelled
+    Loaded --> Loading : generate again
+    Failed --> Loading : generate again
+```
+
+Property values per state (today = 2026-09-27):
+
+| State | month | monthError | branchError | validationMessage | valid | loading | canGenerate | loadError | status |
+| ----- | ----- | ---------- | ----------- | ----------------- | ----- | ------- | ----------- | --------- | ------ |
+| Incomplete | null | `Choose a month.` | `""` or `Select at least one branch.` | non-empty | false | false | false | `""` | `Choose a month.` |
+| Invalid | future month, or any month with no branch | `Month … is in the future.` or `""` | `""` or `Select at least one branch.` | non-empty | false | false | false | `""` | unchanged |
+| Ready | valid month | `""` | `""` | `""` | true | false | true | `""` | unchanged |
+| Loading | valid month | `""` | `""` | `""` | true | true | false | `""` | `Loading <month>...` |
+| Loaded | valid month | `""` | `""` | `""` | true | false | true | `""` | `Loaded n branch(es) for <month>.` |
+| Failed | valid month | `""` | `""` | `""` | true | false | true | file message, e.g. `REP-2026-08-03.csv: unreadable` | `Load failed, previous data kept.` |

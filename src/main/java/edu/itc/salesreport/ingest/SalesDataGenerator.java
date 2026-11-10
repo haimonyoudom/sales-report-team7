@@ -76,8 +76,17 @@ public final class SalesDataGenerator {
     }
 
     public static void main(String[] args) throws IOException {
-        Path dataDir = Path.of(args.length > 0 ? args[0] : "data");
         var generator = new SalesDataGenerator();
+        if (args.length >= 4) {
+            // Lab-03 form: <month> <rowsPerDay> <seed> <dataDir>
+            var month = YearMonth.parse(args[0]);
+            int rows = generator.generate(month, Integer.parseInt(args[1]),
+                    Long.parseLong(args[2]), Path.of(args[3]));
+            System.out.printf("%s: %d files, %d rows%n", month,
+                    3 * month.lengthOfMonth(), rows);
+            return;
+        }
+        Path dataDir = Path.of(args.length > 0 ? args[0] : "data");
         for (String m : List.of("2026-08", "2026-09")) {
             var month = YearMonth.parse(m);
             int rows = generator.generate(month, 40,
