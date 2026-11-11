@@ -249,5 +249,34 @@ class ReportViewModelTest {
         assertEquals(new BigDecimal("150.00"), second.revenue());
         assertEquals(3, second.quantity());
     }
-}
 
+    @Test
+    void twoViewsListenersBothReceiveTotalRevenueAfterOneLoad() {
+        // Challenge requirement 4: simulates two views listening to the same ViewModel
+        SummarySource source = (month, branch) -> new BranchSummary(
+                branch,
+                new BigDecimal("200.00"),
+                BigDecimal.ZERO.setScale(2),
+                1,
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
+        ReportViewModel sharedVm = new ReportViewModel(source, new CallerThreadJobs(), SEP_27);
+        sharedVm.monthProperty().set(AUG);
+
+        List<String> view1Received = new ArrayList<>();
+        List<String> view2Received = new ArrayList<>();
+
+        sharedVm.totalRevenueTextProperty().addListener((obs, oldVal, newVal) -> view1Received.add(newVal));
+        sharedVm.totalRevenueTextProperty().addListener((obs, oldVal, newVal) -> view2Received.add(newVal));
+
+        sharedVm.generateCommand().execute();
+
+        assertEquals("USD 600.00", sharedVm.totalRevenueTextProperty().get());
+        assertTrue(view1Received.contains("USD 600.00"), "View 1 should receive USD 600.00");
+        assertTrue(view2Received.contains("USD 600.00"), "View 2 should receive USD 600.00");
+        assertEquals("USD 600.00", view1Received.get(view1Received.size() - 1));
+        assertEquals("USD 600.00", view2Received.get(view2Received.size() - 1));
+    }
+}

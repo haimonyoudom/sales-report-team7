@@ -13,7 +13,8 @@ class ViewModelImportsTest {
 
     private static final List<String> FORBIDDEN = List.of(
             "import javafx.scene", "import javafx.stage",
-            "import javafx.application", "import javafx.concurrent");
+            "import javafx.application", "import javafx.concurrent",
+            "import java.awt.", "import javax.swing.");
 
     @Test
     void viewModelUsesJavafxBaseOnly() throws IOException {
@@ -25,4 +26,3 @@ class ViewModelImportsTest {
         assertEquals(List.of(), bad);
     }
 }
-

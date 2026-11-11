@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /** Test double: jobs wait until the test runs them, on the test thread. */
-final class ManualJobs implements BackgroundJobs {
+public final class ManualJobs implements BackgroundJobs {
 
     private final Deque<Pending<?>> pending = new ArrayDeque<>();
 
@@ -20,13 +20,25 @@ final class ManualJobs implements BackgroundJobs {
         };
     }
 
-    int pendingCount() {
+    public int pendingCount() {
         return pending.size();
     }
 
+    public boolean hasPending() {
+        return !pending.isEmpty();
+    }
+
     /** Runs the oldest job to completion, as a worker thread would. */
-    void runNext() {
-        pending.remove().run();
+    public void runNext() {
+        if (!pending.isEmpty()) {
+            pending.remove().run();
+        }
+    }
+
+    public void runAll() {
+        while (!pending.isEmpty()) {
+            pending.remove().run();
+        }
     }
 
     private static final class Pending<T> implements ProgressSink {
@@ -61,4 +73,3 @@ final class ManualJobs implements BackgroundJobs {
         }
     }
 }
-

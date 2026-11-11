@@ -98,5 +98,33 @@ class ReportViewModelValidationTest {
         assertFalse(vm.loadingProperty().get());
         assertTrue(vm.canGenerateProperty().get());
     }
+
+    @Test
+    void twoViewsListenersBothReceiveTotalRevenueAfterOneLoad() {
+        // Challenge requirement 4: two listeners on totalRevenueTextProperty() both receive "USD 600.00" after one load
+        SummarySource fixedSource = (month, branch) -> new BranchSummary(
+                branch,
+                new BigDecimal("200.00"),
+                BigDecimal.ZERO.setScale(2),
+                1,
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
+        ReportViewModel sharedVm = new ReportViewModel(fixedSource, new CallerThreadJobs(), clock);
+        sharedVm.monthProperty().set(YearMonth.of(2026, 8));
+
+        java.util.List<String> view1Values = new java.util.ArrayList<>();
+        java.util.List<String> view2Values = new java.util.ArrayList<>();
+
+        sharedVm.totalRevenueTextProperty().addListener((obs, oldVal, newVal) -> view1Values.add(newVal));
+        sharedVm.totalRevenueTextProperty().addListener((obs, oldVal, newVal) -> view2Values.add(newVal));
+
+        sharedVm.generateCommand().execute();
+
+        assertEquals("USD 600.00", sharedVm.totalRevenueTextProperty().get());
+        assertTrue(view1Values.contains("USD 600.00"));
+        assertTrue(view2Values.contains("USD 600.00"));
+    }
 }
 

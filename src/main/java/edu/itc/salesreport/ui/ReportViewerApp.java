@@ -3,9 +3,6 @@ package edu.itc.salesreport.ui;
 import edu.itc.salesreport.engine.DefaultSalesAggregator;
 import edu.itc.salesreport.ingest.CsvMonthReader;
 import edu.itc.salesreport.ingest.CsvTransactionParser;
-import edu.itc.salesreport.engine.DefaultSalesAggregator;
-import edu.itc.salesreport.ingest.CsvMonthReader; 
-import edu.itc.salesreport.ingest.CsvTransactionParser;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +32,7 @@ public class ReportViewerApp extends Application {
         stage.setScene(new Scene(new ReportView(vm).root(), 960, 600));
         stage.setTitle("Angkor Mart · Monthly report (MVVM)");
         stage.show();
+        DashboardWindow.open(vm);
     }
 
     @Override
