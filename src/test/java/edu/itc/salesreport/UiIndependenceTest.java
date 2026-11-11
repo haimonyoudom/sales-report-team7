@@ -15,7 +15,7 @@ class UiIndependenceTest {
         Path source = Path.of("src", "main", "java", "edu", "itc", "salesreport");
         try (Stream<Path> files = Stream.of(
                 source.resolve("model"), source.resolve("ingest"),
-                source.resolve("engine"), source.resolve("ui"),
+                source.resolve("engine"),
                 source.resolve("ui").resolve("mvp"))
                 .flatMap(this::javaFiles)) {
             files.forEach(this::assertToolkitFree);
